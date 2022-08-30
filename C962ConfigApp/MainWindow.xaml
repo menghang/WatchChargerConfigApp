@@ -53,28 +53,184 @@
                 <StackPanel>
                     <DockPanel>
                         <CheckBox
-                            IsChecked="{Binding EnableVendorLock}"
+                            IsChecked="{Binding Selection.EnableVendorLock}"
                             Content="Vendor Lock:"
                             VerticalContentAlignment="Center"
                             Height="30"
                             Margin="5" />
                         <ComboBox
-                            IsEnabled="{Binding EnableVendorLock}"
+                            IsEnabled="{Binding Selection.EnableVendorLock}"
                             ItemsSource="{Binding C962.VendorLockList}"
-                            Selected="{Binding C962.VendorLock}"
+                            SelectedItem="{Binding C962.VendorLock}"
+                            DisplayMemberPath="Mode"
+                            VerticalContentAlignment="Center"
                             Height="30"
                             Margin="5" />
                     </DockPanel>
                     <DockPanel>
                         <CheckBox
-                            IsChecked="{Binding EnableUsbVID}"
+                            IsChecked="{Binding Selection.EnableUsbVID}"
+                            IsEnabled="False"
                             Content="USB VID:"
                             VerticalContentAlignment="Center"
                             Height="30"
                             Margin="5" />
                         <TextBox
-                            IsEnabled="{Binding EnableUsbVID}"
+                            IsEnabled="{Binding Selection.EnableUsbVID}"
                             Text="{Binding C962.UsbVID}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableUsbPID}"
+                            IsEnabled="False"
+                            Content="USB PID:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableUsbPID}"
+                            Text="{Binding C962.UsbPID}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnablePowerMode}"
+                            IsEnabled="False"
+                            Content="Power Mode:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <ComboBox
+                            IsEnabled="{Binding Selection.EnablePowerMode}"
+                            ItemsSource="{Binding C962.PowerModeList}"
+                            SelectedItem="{Binding C962.PowerMode}"
+                            DisplayMemberPath="Mode"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableVendorName}"
+                            IsEnabled="False"
+                            Content="Vendor Name:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableVendorName}"
+                            Text="{Binding C962.VendorName}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableProductName}"
+                            IsEnabled="False"
+                            Content="Product Name:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableProductName}"
+                            Text="{Binding C962.ProductName}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableModelName}"
+                            IsEnabled="False"
+                            Content="Model Name:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableModelName}"
+                            Text="{Binding C962.ModelName}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableSerialNumber}"
+                            IsEnabled="False"
+                            Content="Serial Number:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableSerialNumber}"
+                            IsReadOnly="True"
+                            Text="{Binding C962.SerialNumber}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableVendorID}"
+                            IsEnabled="True"
+                            Content="Vendor ID:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableVendorID}"
+                            Text="{Binding C962.VendorID}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableProductID}"
+                            IsEnabled="True"
+                            Content="Product ID:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableProductID}"
+                            Text="{Binding C962.ProductID}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableProductPlanUID}"
+                            IsEnabled="False"
+                            Content="Product Plan UID:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableProductPlanUID}"
+                            Text="{Binding C962.ProductPlanUID}"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                    </DockPanel>
+                    <DockPanel>
+                        <CheckBox
+                            IsChecked="{Binding Selection.EnableACR}"
+                            IsEnabled="False"
+                            Content="ACR:"
+                            VerticalContentAlignment="Center"
+                            Height="30"
+                            Margin="5" />
+                        <TextBox
+                            IsEnabled="{Binding Selection.EnableACR}"
+                            Text="{Binding C962.ACR}"
                             VerticalContentAlignment="Center"
                             Height="30"
                             Margin="5" />

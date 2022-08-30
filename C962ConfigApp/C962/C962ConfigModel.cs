@@ -12,8 +12,8 @@ namespace C962ConfigApp.C962
     {
         internal class VendorLockModel
         {
-            public byte Value = 0;
-            public string Mode = string.Empty;
+            public byte Value { get; set; } = 0;
+            public string Mode { get; set; } = string.Empty;
         }
 
         public List<VendorLockModel> VendorLockList { get; private set; }
@@ -37,7 +37,14 @@ namespace C962ConfigApp.C962
             {
                 try
                 {
-                    this.usbVID = Convert.ToUInt16(value);
+                    if (value.StartsWith("0x"))
+                    {
+                        this.usbVID = Convert.ToUInt16(value, 16);
+                    }
+                    else
+                    {
+                        this.usbVID = Convert.ToUInt16(value, 10);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -61,7 +68,14 @@ namespace C962ConfigApp.C962
             {
                 try
                 {
-                    this.usbPID = Convert.ToUInt16(value);
+                    if (value.StartsWith("0x"))
+                    {
+                        this.usbPID = Convert.ToUInt16(value, 16);
+                    }
+                    else
+                    {
+                        this.usbPID = Convert.ToUInt16(value, 10);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -74,8 +88,8 @@ namespace C962ConfigApp.C962
 
         internal class PowerModeModel
         {
-            public byte Value = 0;
-            public string Mode = string.Empty;
+            public byte Value { get; set; } = 0;
+            public string Mode { get; set; } = string.Empty;
         }
 
         public List<PowerModeModel> PowerModeList { get; private set; }
