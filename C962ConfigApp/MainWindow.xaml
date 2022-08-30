@@ -7,8 +7,8 @@
     xmlns:local="clr-namespace:C962ConfigApp"
     mc:Ignorable="d"
     Title="MainWindow"
-    Height="600"
-    Width="600">
+    Height="700"
+    Width="700">
     <DockPanel>
         <Menu
             DockPanel.Dock="Top">
@@ -38,19 +38,32 @@
             <DockPanel
                 Grid.Column="0">
                 <UniformGrid
-                    Rows="1"
+                    Rows="2"
                     Columns="2"
                     DockPanel.Dock="Bottom">
                     <Button
-                        Content="Read"
+                        Content="Load Config"
+                        IsEnabled="{Binding NotLocked}"
                         Height="30"
                         Margin="5" />
                     <Button
-                        Content="Write"
+                        Content="Lock / Unlock"
+                        Height="30"
+                        Margin="5"
+                        Click="ButtonLockUnlock_Click" />
+                    <Button
+                        Content="Read C962"
+                        IsEnabled="{Binding Locked}"
+                        Height="30"
+                        Margin="5" />
+                    <Button
+                        Content="Write C962"
+                        IsEnabled="{Binding Locked}"
                         Height="30"
                         Margin="5" />
                 </UniformGrid>
-                <StackPanel>
+                <StackPanel
+                    IsEnabled="{Binding NotLocked}">
                     <DockPanel>
                         <CheckBox
                             IsChecked="{Binding Selection.EnableVendorLock}"

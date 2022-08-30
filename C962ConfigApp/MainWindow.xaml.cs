@@ -28,5 +28,10 @@ namespace C962ConfigApp
             this.view = new();
             this.DataContext = this.view;
         }
+
+        private void ButtonLockUnlock_Click(object sender, RoutedEventArgs e)
+        {
+            this.view.NotLocked = !this.view.NotLocked;
+        }
     }
 }

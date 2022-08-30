@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace C962ConfigApp.View
 {
-    internal class MainWindowVM
+    internal class MainWindowVM : BaseViewModel
     {
         public C962ConfigModel C962 { get; set; } = new();
 
@@ -99,5 +99,21 @@ namespace C962ConfigApp.View
         }
 
         public SelectionModel Selection { get; set; } = new();
+
+        private bool notLocked = false;
+        public bool NotLocked
+        {
+            get => this.notLocked;
+            set
+            {
+                SetProperty(ref this.notLocked, value);
+                OnPropertyChanged(nameof(this.Locked));
+            }
+        }
+
+        public bool Locked
+        {
+            get => !this.notLocked;
+        }
     }
 }
