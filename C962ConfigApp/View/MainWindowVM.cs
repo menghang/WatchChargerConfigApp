@@ -13,7 +13,7 @@ namespace C962ConfigApp.View
 
         internal class SelectionModel : BaseViewModel
         {
-            private bool enableVendorLock = false;
+            private bool enableVendorLock = true;
             public bool EnableVendorLock
             {
                 get => this.enableVendorLock;

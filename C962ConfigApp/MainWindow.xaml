@@ -6,7 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:C962ConfigApp"
     mc:Ignorable="d"
-    Title="MainWindow"
+    Title="C962 Config App"
     Height="700"
     Width="700">
     <DockPanel>
@@ -67,6 +67,7 @@
                     <DockPanel>
                         <CheckBox
                             IsChecked="{Binding Selection.EnableVendorLock}"
+                            IsEnabled="False"
                             Content="Vendor Lock:"
                             VerticalContentAlignment="Center"
                             Height="30"
