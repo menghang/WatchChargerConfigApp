@@ -55,7 +55,8 @@
                         Content="Read C962"
                         IsEnabled="{Binding Locked}"
                         Height="30"
-                        Margin="5" />
+                        Margin="5"
+                        Click="ButtonReadC962_Click" />
                     <Button
                         Content="Write C962"
                         IsEnabled="{Binding Locked}"

@@ -16,23 +16,19 @@ namespace C962ConfigApp.HID
     {
         private const int MAX_USB_DEVICES = 64;
         private static readonly IntPtr INVALID_HANDLE_VALUE = new(-1);
-        private HidDevice? device = null;
-        private FileStream? usbStream = null;
-        private readonly CancellationTokenSource cts = new();
+        //private HidDevice? hidDevice = null;
 
         /// <summary>
         /// 获取所有连接的hid的设备路径
         /// </summary>
         /// <param name="vID">设备的vID</param>
         /// <param name="pID">设备的pID</param>
-        /// <returns>包含每个设备路径和序列号的字符串数组</returns>
-        public static void GetHidDeviceList(Collection<HidDevice> hidDevList, ushort vID, ushort pID)
+        /// <returns>void</returns>
+        public void GetHidDeviceList(out Collection<HidDevice> hidDevList, ushort vID, ushort pID)
         {
             Guid hUSB = Guid.Empty;
-
-            string? devPath = string.Empty;
-            hidDevList.Clear();
-
+            uint index = 0;
+            hidDevList = new();
             // 取得hid设备全局id
             HidD_GetHidGuid(ref hUSB);
             //取得一个包含所有HID接口信息集合的句柄
@@ -41,79 +37,84 @@ namespace C962ConfigApp.HID
             if (hidInfoSet != IntPtr.Zero)
             {
                 SP_DEVICE_INTERFACE_DATA interfaceInfo = new();
-                interfaceInfo.cbSize = (uint)Marshal.SizeOf(typeof(SP_DEVICE_INTERFACE_DATA));
+                interfaceInfo.cbSize = Marshal.SizeOf(typeof(SP_DEVICE_INTERFACE_DATA));
                 //查询集合中每一个接口
-                for (uint index = 0; index < MAX_USB_DEVICES; index++)
+                for (index = 0; index < MAX_USB_DEVICES; index++)
                 {
                     //得到第index个接口信息
                     if (SetupDiEnumDeviceInterfaces(hidInfoSet, IntPtr.Zero, ref hUSB, index, ref interfaceInfo))
                     {
                         int buffsize = 0;
+                        string? devPath = null;
                         // 取得接口详细信息:第一次读取错误,但可以取得信息缓冲区的大小
                         SetupDiGetDeviceInterfaceDetail(hidInfoSet, ref interfaceInfo, IntPtr.Zero, buffsize, ref buffsize, IntPtr.Zero);
                         //构建接收缓冲
                         IntPtr pDetail = Marshal.AllocHGlobal(buffsize);
                         SP_DEVICE_INTERFACE_DETAIL_DATA detail = new();
-                        detail.cbSize = IntPtr.Size == sizeof(long) ?
-                            (uint)(Marshal.SystemDefaultCharSize + 6) :
-                            (uint)(Marshal.SystemDefaultCharSize + 4);
-                        Marshal.StructureToPtr(detail, pDetail, true);
-
+                        detail.cbSize = Marshal.SystemDefaultCharSize + (IntPtr.Size == sizeof(long) ? 6 : 4);
+                        Marshal.StructureToPtr(detail, pDetail, false);
                         if (SetupDiGetDeviceInterfaceDetail(hidInfoSet, ref interfaceInfo, pDetail, buffsize, ref buffsize, IntPtr.Zero))
                         {
-                            //devPath = Marshal.PtrToStringAuto((IntPtr)((int)pDetail + sizeof(uint)));
-                            devPath = IntPtr.Size == sizeof(long)
-                                ? Marshal.PtrToStringAuto(new IntPtr(pDetail.ToInt64() + sizeof(uint)))
-                                : Marshal.PtrToStringAuto(new IntPtr(pDetail.ToInt32() + sizeof(uint)));
+                            devPath = Marshal.PtrToStringAuto(new IntPtr(
+                                (IntPtr.Size == sizeof(long) ? pDetail.ToInt64() : pDetail.ToInt32()) + sizeof(int)));
                         }
                         Marshal.FreeHGlobal(pDetail);
-
                         if (!string.IsNullOrEmpty(devPath))
                         {
                             IntPtr devicePtr = CreateFile(devPath, DESIREDACCESS.GENERIC_READ | DESIREDACCESS.GENERIC_WRITE,
                                 0, 0, CREATIONDISPOSITION.OPEN_EXISTING, FLAGSANDATTRIBUTES.FILE_FLAG_OVERLAPPED, 0);
                             if (devicePtr != INVALID_HANDLE_VALUE)
                             {
-                                IntPtr serialBuff = Marshal.AllocHGlobal(512);
                                 HidD_GetAttributes(devicePtr, out HIDD_ATTRIBUTES attributes);
-                                HidD_GetSerialNumberString(devicePtr, serialBuff, 512);
-                                string? deviceSn = Marshal.PtrToStringAuto(serialBuff);
-                                Marshal.FreeHGlobal(serialBuff);
-                                if (!string.IsNullOrEmpty(deviceSn))
+                                if (attributes.VendorID == vID && attributes.ProductID == pID)
                                 {
-                                    if (attributes.VendorID == vID && attributes.ProductID == pID)
-                                    {
-                                        HidD_GetPreparsedData(devicePtr, out IntPtr preparseData);
-                                        _ = HidP_GetCaps(preparseData, out HIDP_CAPS caps);
-                                        HidD_FreePreparsedData(preparseData);
+                                    HidD_GetPreparsedData(devicePtr, out IntPtr preparseData);
+                                    HidP_GetCaps(preparseData, out HIDP_CAPS caps);
+                                    HidD_FreePreparsedData(preparseData);
 
-                                        hidDevList.Add(new HidDevice(devPath, deviceSn,
-                                            caps.InputReportByteLength, caps.OutputReportByteLength));
-                                    }
+                                    hidDevList.Add(new HidDevice(devPath, caps.InputReportByteLength, caps.OutputReportByteLength));
                                 }
-                                _ = CloseHandle(devicePtr);
+                                CloseHandle(devicePtr);
                             }
-
                         }
                     }
                 }
+                SetupDiDestroyDeviceInfoList(hidInfoSet);
             }
-            SetupDiDestroyDeviceInfoList(hidInfoSet);
         }
 
-        public void SetDevice(HidDevice dev) => this.device = dev;
+        /// <summary>
+        /// 打开指定信息的设备
+        /// </summary>
+        /// <param name="vID">设备的vID</param>
+        /// <param name="pID">设备的pID</param>
+        public HID_RETURN OpenDevice(HidDevice hidDevice)
+        {
+            //打开设备文件（可读写）并返回句柄到device变量
+            IntPtr devicePtr = CreateFile(hidDevice.Path, DESIREDACCESS.GENERIC_READ | DESIREDACCESS.GENERIC_WRITE, 0, 0, CREATIONDISPOSITION.OPEN_EXISTING, FLAGSANDATTRIBUTES.FILE_FLAG_OVERLAPPED, 0);
+            if (devicePtr != INVALID_HANDLE_VALUE)
+            {
+                hidDevice.UsbDevice = devicePtr;
+                hidDevice.UsbFs = new FileStream(new SafeFileHandle(devicePtr, false), FileAccess.ReadWrite, hidDevice.InputReportLength, true); //实例化sub对象，对象为字段，所以全局调用同一个，这里已经定了读数据长度
+
+                return HID_RETURN.SUCCESS;
+            }
+            else
+            {
+                return HID_RETURN.NO_DEVICE_CONECTED;
+            }
+        }
 
         /// <summary>
         /// 关闭打开的设备
         /// </summary>
-        public void CloseDevice()
+        public void CloseDevice(HidDevice hidDevice)
         {
-            this.cts.Cancel();
-            if (this.usbStream != null)
+            if (hidDevice.UsbFs != null)
             {
-                this.usbStream.Close();
+                hidDevice.UsbFs.Close();
             }
-            this.device = null;
+            CloseHandle(hidDevice.UsbDevice);
         }
 
         /// <summary>
@@ -121,34 +122,24 @@ namespace C962ConfigApp.HID
         /// </summary>
         /// <param name="buffer"></param>
         /// <returns></returns>
-        public HID_RETURN Write(byte[] data)
+        public async Task<HID_RETURN> WriteAsync(HidDevice hidDevice, byte[] data)
         {
-            if (this.device != null)
+            if (hidDevice.UsbFs != null)
             {
-                if (this.usbStream == null)
-                {
-                    IntPtr devicePtr = CreateFile(this.device.Path,
-                        DESIREDACCESS.GENERIC_READ | DESIREDACCESS.GENERIC_WRITE,
-                        0, 0, CREATIONDISPOSITION.OPEN_EXISTING,
-                        FLAGSANDATTRIBUTES.FILE_FLAG_OVERLAPPED, 0);
-                    this.usbStream = new FileStream(new SafeFileHandle(devicePtr, false),
-                        FileAccess.ReadWrite, this.device.InputReportLength, true);
-                }
                 try
                 {
-                    byte[] buffer = new byte[this.device.OutputReportLength];
+                    byte[] buffer = new byte[hidDevice.OutputReportLength];
                     for (int i = 0; i < data.Length && i < buffer.Length; i++)
                     {
                         buffer[i] = data[i];
                     }
-                    this.usbStream.Write(buffer, 0, buffer.Length);
+                    await hidDevice.UsbFs.WriteAsync(buffer, 0, buffer.Length);
                     return HID_RETURN.SUCCESS;
                 }
                 catch (Exception ex)
                 {
                     Trace.WriteLine(ex.ToString());
-                    OnDeviceRemoved();
-                    return HID_RETURN.WRITE_FAILD;
+                    return HID_RETURN.WRITE_FAILED;
                 }
             }
             else
@@ -160,50 +151,35 @@ namespace C962ConfigApp.HID
         /// <summary>
         /// 开始一次异步读
         /// </summary>
-        public async Task ReadASync()
+        public async Task<byte[]?> ReadAsync(HidDevice hidDevice)
         {
-            while (this.device != null && this.usbStream != null)
+            if (hidDevice.UsbFs != null)
             {
-                byte[] buf = new byte[this.device.InputReportLength];
                 try
                 {
-                    _ = await this.usbStream.ReadAsync(buf.AsMemory(0, buf.Length), this.cts.Token);
-                    this.ReadCompleted!(this, new HidDataEventArgs(buf));
+                    byte[] buf = new byte[hidDevice.InputReportLength];
+                    CancellationTokenSource cts = new();
+                    cts.CancelAfter(1000);
+                    int ret = await hidDevice.UsbFs.ReadAsync(buf.AsMemory(0, buf.Length), cts.Token);
+                    if (ret > 0)
+                    {
+                        return buf;
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
                 catch (Exception ex)
                 {
                     Trace.WriteLine(ex.ToString());
-                    OnDeviceRemoved();
+                    return null;
                 }
-
             }
-        }
-
-        /// <summary>
-        /// 事件:设备断开
-        /// </summary>
-        public delegate void DeviceRemovedHandler(object sender, EventArgs e);
-        public event DeviceRemovedHandler? DeviceRemoved;
-
-        /// <summary>
-        /// 事件:HID读取数据完成
-        /// </summary>
-        public delegate void ReadCompletedHandler(object sender, HidDataEventArgs e);
-        public event ReadCompletedHandler? ReadCompleted;
-
-        public class HidDataEventArgs : EventArgs
-        {
-            public byte[] data;
-            public HidDataEventArgs(byte[] d)
+            else
             {
-                this.data = d;
+                return null;
             }
-        }
-
-        private void OnDeviceRemoved()
-        {
-            CloseDevice();
-            this.DeviceRemoved!(this, new EventArgs());//发出设备移除消息
         }
 
         #region<连接USB返回的结构体信息>
@@ -216,13 +192,13 @@ namespace C962ConfigApp.HID
             NO_DEVICE_CONECTED,
             DEVICE_NOT_FIND,
             DEVICE_OPENED,
-            WRITE_FAILD,
-            READ_FAILD
+            WRITE_FAILED,
+            READ_FAILED
 
         }
         #endregion
 
-
+        #region WINAPI
         // 以下是调用windows的API的函数
         /// <summary>
         /// The HidD_GetHidGuid routine returns the device interface GUID for HIDClass devices.
@@ -373,40 +349,40 @@ namespace C962ConfigApp.HID
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool UnregisterDeviceNotification(IntPtr handle);
     }
+    #endregion
+
     #region
     /// <summary>
     /// SP_DEVICE_INTERFACE_DATA structure defines a device interface in a device information set.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
     public struct SP_DEVICE_INTERFACE_DATA
     {
-        public uint cbSize;// = (uint)Marshal.SizeOf(typeof(SP_DEVICE_INTERFACE_DATA));
+        public int cbSize;
         public Guid interfaceClassGuid;
-        public uint flags;
+        public int flags;
         public IntPtr reserved;
     }
 
     /// <summary>
     /// SP_DEVICE_INTERFACE_DETAIL_DATA structure contains the path for a device interface.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    public struct SP_DEVICE_INTERFACE_DETAIL_DATA
+    [StructLayout(LayoutKind.Sequential, Pack = 2)]
+    internal struct SP_DEVICE_INTERFACE_DETAIL_DATA
     {
-        public uint cbSize;//= (uint)Marshal.SizeOf(typeof(SP_DEVICE_INTERFACE_DETAIL_DATA));
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
-        public string devicePath;
+        internal int cbSize;
+        internal IntPtr DevicePath;
     }
 
     /// <summary>
     /// SP_DEVINFO_DATA structure defines a device instance that is a member of a device information set.
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public struct SP_DEVINFO_DATA
+    public class SP_DEVINFO_DATA
     {
-        public uint cbSize;//= (uint)Marshal.SizeOf(typeof(SP_DEVINFO_DATA));
-        public Guid classGuid;//= Guid.Empty; // temp
-        public uint devInst;//= 0; // dumy
-        public IntPtr reserved;//= new IntPtr(0);
+        public int cbSize = Marshal.SizeOf(typeof(SP_DEVINFO_DATA));
+        public Guid classGuid = Guid.Empty; // temp
+        public int devInst = 0; // dumy
+        public IntPtr reserved = IntPtr.Zero;
     }
     /// <summary>
     /// Flags controlling what is included in the device information set built by SetupDiGetClassDevs
@@ -453,7 +429,7 @@ namespace C962ConfigApp.HID
     /// <summary>
     /// Type of access to the object. 
     ///</summary>
-    internal static class DESIREDACCESS
+    static class DESIREDACCESS
     {
         public const uint GENERIC_READ = 0x80000000;
         public const uint GENERIC_WRITE = 0x40000000;
@@ -464,7 +440,7 @@ namespace C962ConfigApp.HID
     /// <summary>
     /// Action to take on files that exist, and which action to take when files do not exist. 
     /// </summary>
-    internal static class CREATIONDISPOSITION
+    static class CREATIONDISPOSITION
     {
         public const uint CREATE_NEW = 1;
         public const uint CREATE_ALWAYS = 2;
@@ -476,7 +452,7 @@ namespace C962ConfigApp.HID
     /// <summary>
     /// File attributes and flags for the file. 
     /// </summary>
-    internal static class FLAGSANDATTRIBUTES
+    static class FLAGSANDATTRIBUTES
     {
         public const uint FILE_FLAG_WRITE_THROUGH = 0x80000000;
         public const uint FILE_FLAG_OVERLAPPED = 0x40000000;
@@ -513,5 +489,44 @@ namespace C962ConfigApp.HID
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 255)]
         public string dbcc_name;
     }
+
+    static class DEVICE_FLAG
+    {
+        /// <summary>Windows message sent when a device is inserted or removed</summary>
+        public const int WM_DEVICECHANGE = 0x0219;
+        /// <summary>WParam for above : A device was inserted</summary>
+        public const int DEVICE_ARRIVAL = 0x8000;
+        /// <summary>WParam for above : A device was removed</summary>
+        public const int DEVICE_REMOVECOMPLETE = 0x8004;
+        /// <summary>Used when registering for device insert/remove messages : specifies the type of device</summary>
+        public const int DEVTYP_DEVICEINTERFACE = 0x05;
+        /// <summary>Used when registering for device insert/remove messages : we're giving the API call a window handle</summary>
+        public const int DEVICE_NOTIFY_WINDOW_HANDLE = 0;
+    }
+
+    /// <summary>
+    /// Sharing mode of the file or object
+    ///</summary>
+    static class SHAREMODE
+    {
+        public const uint FILE_SHARE_READ = 0x00000001;
+        public const uint FILE_SHARE_WRITE = 0x00000002;
+        public const uint FILE_SHARE_DELETE = 0x00000004;
+    }
     #endregion
+
+    /// <summary>
+    /// 传入ID和arraybuff（只读）
+    /// </summary>
+    public class report : EventArgs
+    {
+
+        public readonly byte reportID; //接收发送的数据（第一帧）
+        public readonly byte[] reportBuff; //接收发送的数据（第二帧及以后）
+        public report(byte id, byte[] arrayBuff)
+        {
+            reportID = id;
+            reportBuff = arrayBuff;
+        }
+    }
 }

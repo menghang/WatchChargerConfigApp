@@ -100,7 +100,7 @@ namespace C962ConfigApp.View
 
         public SelectionModel Selection { get; set; } = new();
 
-        private bool notLocked = false;
+        private bool notLocked = true;
         public bool NotLocked
         {
             get => this.notLocked;

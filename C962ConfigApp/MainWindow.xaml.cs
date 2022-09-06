@@ -1,6 +1,8 @@
-﻿using C962ConfigApp.View;
+﻿using C962ConfigApp.C962;
+using C962ConfigApp.View;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,16 +24,36 @@ namespace C962ConfigApp
     public partial class MainWindow : Window
     {
         private readonly MainWindowVM view;
+        private C962Device dev;
         public MainWindow()
         {
             InitializeComponent();
             this.view = new();
             this.DataContext = this.view;
+
+            dev = new();
         }
 
         private void ButtonLockUnlock_Click(object sender, RoutedEventArgs e)
         {
             this.view.NotLocked = !this.view.NotLocked;
+        }
+
+        private async void ButtonReadC962_Click(object sender, RoutedEventArgs e)
+        {
+            if (!dev.GetDevice())
+            {
+                return;
+            }
+            for (byte id = 0x00; id <= 0x0c; id++)
+            {
+                byte[]? data = await dev.GetItem(id);
+                if (data != null)
+                {
+                    Trace.WriteLine(data);
+                }
+            }
+
         }
     }
 }
