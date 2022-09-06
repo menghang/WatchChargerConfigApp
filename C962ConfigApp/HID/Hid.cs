@@ -134,6 +134,7 @@ namespace C962ConfigApp.HID
                         buffer[i] = data[i];
                     }
                     await hidDevice.UsbFs.WriteAsync(buffer, 0, buffer.Length);
+                    await hidDevice.UsbFs.FlushAsync();
                     return HID_RETURN.SUCCESS;
                 }
                 catch (Exception ex)
